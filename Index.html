@@ -1,47 +1,175 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>XTREM SPORTS LIVE Player + Popunder Ad</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Stream Player (Video.js)</title>
+  <!-- Video.js CSS -->
+  <link href="https://vjs.zencdn.net/8.10.0/video-js.css" rel="stylesheet"/>
   <style>
-    body { background:#20212a; color:#eee; }
-    .container { max-width: 500px; margin: 40px auto 20px auto; 
-      background: #28293d; border-radius: 16px; box-shadow: 0 5px 22px #0008; padding: 30px 15px; }
-    video { width: 100%; border-radius: 10px; background:#000; outline: none;}
-    .controls { margin: 0 0 10px 0; text-align: right; }
-    .credit {margin:16px 0 0 0; color:#b8bebc;font-size:15px;text-align:center;opacity:0.82;}
-    @media (max-width:540px){ .container{max-width:99vw; padding:10vw 3vw;} }
+    body {
+      background: #e9eef3;
+      min-height: 100vh;
+      margin: 0;
+      font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+      display: flex; align-items: center; justify-content: center; padding: 0 12px;
+    }
+    .container {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.13);
+      padding: 24px;
+      max-width: 480px;
+      width: 100%;
+      margin: 45px auto;
+    }
+    .header {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 21px;
+      color: #0d6efd;
+    }
+    .video-js {
+      border-radius: 12px;
+      box-shadow: 0 0 0 3px #0d6efd;
+      width: 100% !important;
+      height: 234px !important;
+      background: #000;
+    }
+    .quality-row {
+      margin-bottom: 12px;
+      text-align: right;
+    }
+    .share-btn {
+      background: #0d6efd;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 11px;
+      font-weight: 700;
+      width: 100%;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      transition: 0.25s;
+    }
+    .share-btn:hover {
+      background: #0a58ca;
+    }
+    label[for="qualitySelect"] {
+      font-weight: 500;
+      color: #0d6efd;
+      margin-right: 4px;
+      font-size: 15px;
+    }
+    select#qualitySelect {
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      font-size: 15px;
+      padding: 4px 8px;
+      background: #f1f6fc;
+      color: #0d6efd;
+      font-weight: 600;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <video id="video" controls poster="" playsinline></video>
-    <div class="controls">
-      <!-- Quality selector yahan nahi dikhega, kyunki is stream me sirf 1 quality hai -->
+    <div class="header">Live Stream</div>
+    <div class="quality-row">
+      <label for="qualitySelect">Quality:</label>
+      <select id="qualitySelect" disabled>
+        <option>Loading...</option>
+      </select>
     </div>
-    <div class="credit">XTREM SPORTS LIVE • Powered by hls.js • <b>@Arun ji</b></div>
+    <video
+      id="liveVideo"
+      class="video-js vjs-default-skin"
+      controls
+      autoplay
+      playsinline
+    ></video>
+    <button class="share-btn" id="shareBtn">Share This Page Link</button>
   </div>
-  <!-- Popunder Adsterra Script (user interaction par trigger hoga) -->
-  <script src="https://violationsyllable.com/30/f1/6e/30f16ee1806c48f988ec5a34fc6788dc.js"></script>
+
+  <!-- Video.js 8 -->
+  <script src="https://vjs.zencdn.net/8.10.0/video.min.js"></script>
+  <!-- HLS.js -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@1.4.12/dist/hls.min.js"></script>
   <script>
-    // -- Main Player Setup --
-    const videoSrc = "https://live13p.hotstar.com/hls/live/2123063/inallow-ipl-2026/bih/1540065709/15mindvrm013f8094abcb40450699fc819f9b63b54a05april2026/master_ap_1080_5.m3u8";
-    var video = document.getElementById('video');
-    if (Hls.isSupported()) {
-      var hls = new Hls({ autoStartLoad: true, capLevelToPlayerSize: true });
-      hls.loadSource(videoSrc);
-      hls.attachMedia(video);
-      hls.on(Hls.Events.ERROR, function (event,data) {
-        if (data.fatal) alert('Video stream load error!');
-      });
-    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = videoSrc;
-    } else {
-      alert('Your browser does not support HLS streaming 😢');
+    const streamUrl = "https://psl.bigbaat.app/out/v1/0ef369b90c7b4025b76621e46ee5fb70/index.m3u8";
+    const videoEl = document.getElementById('liveVideo');
+    const qualitySelect = document.getElementById('qualitySelect');
+
+    // Initialize Video.js player
+    const player = videojs('liveVideo', {
+      preload: 'auto',
+      liveui: true,
+      fluid: true
+    });
+
+    // QUALITY CONTROL LOGIC
+    function setupWithHlsJs() {
+      if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(streamUrl);
+        hls.attachMedia(player.tech().el());
+
+        hls.on(Hls.Events.MANIFEST_PARSED, function (event, data) {
+          // Build quality selector
+          qualitySelect.innerHTML = "";
+          // Auto option
+          const autoOption = document.createElement('option');
+          autoOption.value = '-1';
+          autoOption.text = 'Auto';
+          qualitySelect.appendChild(autoOption);
+
+          data.levels.forEach(function(level, idx) {
+            const option = document.createElement('option');
+            option.value = idx;
+            option.text = `${level.height}p (${Math.round(level.bitrate/1000)} kbps)`;
+            qualitySelect.appendChild(option);
+          });
+          qualitySelect.disabled = false;
+          qualitySelect.value = '-1';
+        });
+
+        qualitySelect.addEventListener('change', function() {
+          hls.currentLevel = parseInt(this.value, 10);
+        });
+
+      } else {
+        // No HLS.js support: fallback to native video
+        player.src({ src: streamUrl, type: 'application/vnd.apple.mpegurl' });
+        qualitySelect.innerHTML = "<option>Quality selection not available in this browser</option>";
+        qualitySelect.disabled = true;
+      }
     }
-    // Tip: Popunder Adsterra script upar hai. Ad tabhi trigger hoga jab user click/tap karega (ब्राउज़र/adblock policy पे depend करता है)
+
+    // Detect native HLS support
+    function hasNativeHls() {
+      const v = document.createElement('video');
+      return v.canPlayType('application/vnd.apple.mpegurl');
+    }
+
+    if (hasNativeHls() && !Hls.isSupported()) {
+      // Safari and iOS browsers
+      player.src({ src: streamUrl, type: 'application/vnd.apple.mpegurl' });
+      qualitySelect.innerHTML = "<option>Quality selection not available in Safari/iOS</option>";
+      qualitySelect.disabled = true;
+    } else {
+      // Others – use HLS.js
+      setupWithHlsJs();
+    }
+
+    // Share button logic
+    document.getElementById('shareBtn').onclick = function() {
+      navigator.clipboard.writeText(window.location.href).then(function() {
+        alert('Link Copied');
+      });
+    };
   </script>
 </body>
 </html>
